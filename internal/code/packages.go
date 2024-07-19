@@ -127,7 +127,9 @@ func (p *Packages) LoadAll(importPaths ...string) []*packages.Package {
 
 	res := make([]*packages.Package, 0, len(importPaths))
 	for _, path := range importPaths {
-		res = append(res, p.packages[NormalizeVendor(path)])
+		if _, isOk := p.packages[NormalizeVendor(path)]; isOk {
+			res = append(res, p.packages[NormalizeVendor(path)])
+		}
 	}
 	return res
 }
@@ -144,6 +146,13 @@ func (p *Packages) addToCache(pkg *packages.Package) {
 
 // Load works the same as LoadAll, except a single package at a time.
 func (p *Packages) Load(importPath string) *packages.Package {
+
+	if importPath == "./presentation/adapters" {
+		importPath = "github.com/Kostyak30/vigo-backend/src/presentation/adapters"
+	} else if importPath == "./infrastructure" {
+		// importPath = "github.com/Kostyak30/vigo-backend/src/presentation/adapters"
+	}
+
 	// Quick cache check first to avoid expensive allocations of LoadAll()
 	if p.packages != nil {
 		if pkg, ok := p.packages[importPath]; ok {
@@ -155,6 +164,7 @@ func (p *Packages) Load(importPath string) *packages.Package {
 	if len(pkgs) == 0 {
 		return nil
 	}
+	p.packages[importPath] = pkgs[0] // TODO: Check it
 	return pkgs[0]
 }
 
@@ -223,7 +233,12 @@ func (p *Packages) NameForPackage(importPath string) string {
 // Evict removes a given package import path from the cache, along with any packages that depend on it. Further calls
 // to Load will fetch it from disk.
 func (p *Packages) Evict(importPath string) {
+	return //TODO: FIX IT
 	delete(p.packages, importPath)
+
+	if p.packages == nil { // VIGO
+		return
+	}
 
 	for _, pkg := range p.packages {
 		for _, imported := range pkg.Imports {
